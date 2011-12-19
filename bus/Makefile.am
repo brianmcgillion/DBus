@@ -7,6 +7,7 @@ DBUS_BUS_LIBS = \
 	$(THREAD_LIBS) \
 	$(ADT_LIBS) \
 	$(NETWORK_libs) \
+	$(LIBSMACK_LIBS) \
 	$(NULL)
 
 DBUS_LAUNCHER_LIBS = \
@@ -21,6 +22,7 @@ AM_CPPFLAGS = \
 	-DDBUS_SYSTEM_CONFIG_FILE=\""$(configdir)/system.conf"\" \
 	-DDBUS_COMPILATION \
 	-DDBUS_STATIC_BUILD \
+	$(LIBSMACK_CFLAGS) \
 	$(NULL)
 
 # if assertions are enabled, improve backtraces
@@ -93,6 +95,8 @@ BUS_SOURCES=					\
 	services.h				\
 	signals.c				\
 	signals.h				\
+	smack.c                                 \
+	smack.h                                 \
 	stats.c					\
 	stats.h					\
 	test.c					\
