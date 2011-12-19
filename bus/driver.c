@@ -30,6 +30,7 @@
 #include "services.h"
 #include "selinux.h"
 #include "signals.h"
+#include "smack.h"
 #include "stats.h"
 #include "utils.h"
 #include <dbus/dbus-string.h>
@@ -37,6 +38,7 @@
 #include <dbus/dbus-message.h>
 #include <dbus/dbus-marshal-recursive.h>
 #include <string.h>
+
 
 static dbus_bool_t bus_driver_send_welcome_message (DBusConnection *connection,
                                                     DBusMessage    *hello_message,
@@ -1736,6 +1738,10 @@ static const MessageHandler dbus_message_handlers[] = {
     "",
     DBUS_TYPE_STRING_AS_STRING,
     bus_driver_handle_get_id },
+  { "GetConnectionSmackContext",
+    DBUS_TYPE_STRING_AS_STRING,
+    DBUS_TYPE_STRING_AS_STRING,
+    bus_smack_handle_get_connection_context },
   { NULL, NULL, NULL, NULL }
 };
 
