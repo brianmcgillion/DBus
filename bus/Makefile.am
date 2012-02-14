@@ -1,6 +1,7 @@
 configdir=$(sysconfdir)/dbus-1
 dbus_daemon_execdir = $(DBUS_DAEMONDIR)
 
+
 INCLUDES = -I$(top_srcdir) \
 	$(DBUS_BUS_CFLAGS) \
 	-DDBUS_SYSTEM_CONFIG_FILE=\""$(configdir)/system.conf"\" \
@@ -73,6 +74,8 @@ BUS_SOURCES=					\
 	services.h				\
 	signals.c				\
 	signals.h				\
+	smack.c                                 \
+	smack.h                                 \
 	test.c					\
 	test.h					\
 	utils.c					\

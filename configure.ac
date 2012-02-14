@@ -186,6 +186,9 @@ if test "x$enable_embedded_tests" = xyes; then
       [Define to build test code into the library and binaries])
 fi
 
+# call early to ensure availability
+PKG_PROG_PKG_CONFIG
+
 # DBUS_ENABLE_MODULAR_TESTS controls tests that work based on public API.
 # These use GTest, from GLib, because life's too short. They're enabled by
 # default (unless you don't have GLib), because they don't bloat the library
@@ -848,8 +851,6 @@ fi
 # unix:path=/foo or unix:abstract=/foo
 AC_SUBST(DBUS_PATH_OR_ABSTRACT)
 
-PKG_PROG_PKG_CONFIG
-
 #### Sort out XML library
 
 # see what we have
@@ -1129,14 +1130,26 @@ if test x$dbus_win = xyes ; then
   fi
 fi
 
+#enable smack label support
+AC_ARG_ENABLE([smack], [AS_HELP_STRING([--enable-smack], [enable SMACK security checks])], [], [enable_smack=no])
+if test "x$enable_smack" = xyes; then
+  PKG_CHECK_MODULES([LIBSMACK], [libsmack >= 1.0],
+     [AC_DEFINE([DBUS_ENABLE_SMACK], [1], [Define to enable SMACK security features])],
+     [AC_MSG_ERROR([libsmack is required to enable smack support])])
+fi
+
+AC_SUBST([LIBSMACK_CFLAGS])
+AC_SUBST([LIBSMACK_LIBS])
+
+
 #### Set up final flags
 DBUS_CLIENT_CFLAGS=
 DBUS_CLIENT_LIBS="$THREAD_LIBS $NETWORK_libs"
 AC_SUBST(DBUS_CLIENT_CFLAGS)
 AC_SUBST(DBUS_CLIENT_LIBS)
 
-DBUS_BUS_CFLAGS="$XML_CFLAGS"
-DBUS_BUS_LIBS="$XML_LIBS $SELINUX_LIBS $THREAD_LIBS $ADT_LIBS $NETWORK_libs"
+DBUS_BUS_CFLAGS="$XML_CFLAGS $LIBSMACK_CFLAGS"
+DBUS_BUS_LIBS="$XML_LIBS $SELINUX_LIBS $THREAD_LIBS $ADT_LIBS $NETWORK_libs $LIBSMACK_LIBS"
 AC_SUBST(DBUS_BUS_CFLAGS)
 AC_SUBST(DBUS_BUS_LIBS)
 
@@ -1650,6 +1663,7 @@ echo "
         Building assertions:      ${enable_asserts}
         Building checks:          ${enable_checks}
         Building SELinux support: ${have_selinux}
+	Building SMACK support:   ${enable_smack}
         Building inotify support: ${have_inotify}
         Building dnotify support: ${have_dnotify}
         Building kqueue support:  ${have_kqueue}

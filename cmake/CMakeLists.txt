@@ -97,6 +97,8 @@ OPTION(DBUS_DISABLE_ASSERTS "Disable assertion checking" OFF)
 
 option (DBUS_ENABLE_STATS "enable bus daemon usage statistics" OFF)
 
+option (DBUS_ENABLE_SMACK "enable smack checks in the daemon" OFF)
+
 if (DBUS_USE_EXPAT)
     find_package(LibExpat)
 else ()
@@ -567,6 +569,7 @@ message("        Building bus stats API:   ${DBUS_ENABLE_STATS}                "
 message("        installing system libs:   ${DBUS_INSTALL_SYSTEM_LIBS}         ")
 #message("        Building SELinux support: ${have_selinux}                     ")
 #message("        Building dnotify support: ${have_dnotify}                     ")
+message("        Building Smack support:   ${DBUS_ENABLE_SMACK}                ")
 message("        Building Doxygen docs:    ${DBUS_ENABLE_DOXYGEN_DOCS}         ")
 message("        Building XML docs:        ${DBUS_ENABLE_XML_DOCS}             ")
 #message("        Gettext libs (empty OK):  ${INTLLIBS}                         ")

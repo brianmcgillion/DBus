@@ -43,6 +43,7 @@ typedef enum
   POLICY_MANDATORY,
   POLICY_USER,
   POLICY_GROUP,
+  POLICY_SMACK,
   POLICY_CONSOLE
 } PolicyType;
 
@@ -64,7 +65,11 @@ typedef struct
     struct
     {
       PolicyType type;
-      unsigned long gid_uid_or_at_console;      
+      union
+      {
+        unsigned long gid_uid_or_at_console;
+        char *smack_label;
+      };
     } policy;
 
     struct
@@ -150,6 +155,8 @@ element_free (Element *e)
 {
   if (e->type == ELEMENT_LIMIT)
     dbus_free (e->d.limit.name);
+  else if (e->type == ELEMENT_POLICY && e->d.policy.type == POLICY_SMACK)
+      dbus_free (e->d.policy.smack_label);
   
   dbus_free (e);
 }
@@ -972,6 +979,7 @@ start_busconfig_child (BusConfigParser   *parser,
       const char *user;
       const char *group;
       const char *at_console;
+      const char *smack;
 
       if ((e = push_element (parser, ELEMENT_POLICY)) == NULL)
         {
@@ -988,20 +996,16 @@ start_busconfig_child (BusConfigParser   *parser,
                               "context", &context,
                               "user", &user,
                               "group", &group,
+                              "smack", &smack,
                               "at_console", &at_console,
                               NULL))
         return FALSE;
 
-      if (((context && user) ||
-           (context && group) ||
-           (context && at_console)) ||
-           ((user && group) ||
-           (user && at_console)) ||
-           (group && at_console) ||
-          !(context || user || group || at_console))
+      if (((context != NULL) + (user != NULL) + (group != NULL) +
+          (smack != NULL) + (at_console != NULL)) != 1)
         {
           dbus_set_error (error, DBUS_ERROR_FAILED,
-                          "<policy> element must have exactly one of (context|user|group|at_console) attributes");
+                          "<policy> element must have exactly one of (context|user|group|smack|at_console) attributes");
           return FALSE;
         }
 
@@ -1046,6 +1050,16 @@ start_busconfig_child (BusConfigParser   *parser,
           else
             _dbus_warn ("Unknown group \"%s\" in message bus configuration file\n",
                         group);          
+        }
+      else if (smack != NULL)
+        {
+          e->d.policy.type = POLICY_SMACK;
+          e->d.policy.smack_label = _dbus_strdup (smack);
+          if (e->d.policy.smack_label == NULL)
+            {
+              BUS_SET_OOM (error);
+              return FALSE;
+            }
         }
       else if (at_console != NULL)
         {
@@ -1616,8 +1630,10 @@ append_rule_from_element (BusConfigParser   *parser,
                                              rule))
             goto nomem;
           break;
-        
-
+        case POLICY_SMACK:
+          if (!bus_policy_append_smack_rule (parser->policy, pe->d.policy.smack_label, rule))
+            goto nomem;
+          break;
         case POLICY_CONSOLE:
           if (!bus_policy_append_console_rule (parser->policy, pe->d.policy.gid_uid_or_at_console,
                                                rule))
