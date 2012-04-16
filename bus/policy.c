@@ -26,6 +26,7 @@
 #include "services.h"
 #include "test.h"
 #include "utils.h"
+#include "smack.h"
 #include <dbus/dbus-list.h>
 #include <dbus/dbus-hash.h>
 #include <dbus/dbus-internals.h>
@@ -126,12 +127,13 @@ struct BusPolicy
 {
   int refcount;
 
-  DBusList *default_rules;         /**< Default policy rules */
-  DBusList *mandatory_rules;       /**< Mandatory policy rules */
-  DBusHashTable *rules_by_uid;     /**< per-UID policy rules */
-  DBusHashTable *rules_by_gid;     /**< per-GID policy rules */
-  DBusList *at_console_true_rules; /**< console user policy rules where at_console="true"*/
-  DBusList *at_console_false_rules; /**< console user policy rules where at_console="false"*/
+  DBusList *default_rules;             /**< Default policy rules */
+  DBusList *mandatory_rules;           /**< Mandatory policy rules */
+  DBusHashTable *rules_by_uid;         /**< per-UID policy rules */
+  DBusHashTable *rules_by_gid;         /**< per-GID policy rules */
+  DBusHashTable *rules_by_smack_label; /**< per-SMACK label policy rules */
+  DBusList *at_console_true_rules;     /**< console user policy rules where at_console="true"*/
+  DBusList *at_console_false_rules;    /**< console user policy rules where at_console="false"*/
 };
 
 static void
@@ -180,6 +182,14 @@ bus_policy_new (void)
                                                free_rule_list_func);
   if (policy->rules_by_gid == NULL)
     goto failed;
+
+#ifdef DBUS_ENABLE_SMACK
+  policy->rules_by_smack_label = _dbus_hash_table_new (DBUS_HASH_STRING,
+                                                       (DBusFreeFunction) dbus_free,
+                                                       free_rule_list_func);
+  if (policy->rules_by_smack_label == NULL)
+    goto failed;
+#endif
 
   return policy;
   
@@ -230,7 +240,13 @@ bus_policy_unref (BusPolicy *policy)
           _dbus_hash_table_unref (policy->rules_by_gid);
           policy->rules_by_gid = NULL;
         }
-      
+
+      if (policy->rules_by_smack_label)
+        {
+          _dbus_hash_table_unref (policy->rules_by_smack_label);
+          policy->rules_by_smack_label = NULL;
+        }
+
       dbus_free (policy);
     }
 }
@@ -354,6 +370,24 @@ bus_policy_create_client_policy (BusPolicy      *policy,
         {
           goto nomem;
         }
+    }
+
+  if (policy->rules_by_smack_label &&
+      _dbus_hash_table_get_n_entries (policy->rules_by_smack_label) > 0)
+    {
+      DBusList **list;
+      dbus_bool_t nomem_err = FALSE;
+
+      list = bus_smack_generate_allowed_list(connection, policy->rules_by_smack_label, &nomem_err);
+
+      if (list != NULL)
+        {
+          nomem_err = !add_list_to_client (list, client);
+          _dbus_list_clear (list);
+        }
+
+      if (nomem_err)
+        goto nomem;
     }
 
   if (!add_list_to_client (&policy->mandatory_rules,
@@ -576,6 +610,66 @@ bus_policy_append_group_rule (BusPolicy      *policy,
   return TRUE;
 }
 
+#ifdef DBUS_ENABLE_SMACK
+static DBusList **
+get_list_string (DBusHashTable *table,
+                 const char *key)
+{
+  DBusList **list;
+
+  if (key == NULL)
+      return NULL;
+
+  list = _dbus_hash_table_lookup_string (table, key);
+
+  if (list == NULL)
+    {
+      char *new_key;
+
+      list = dbus_new0 (DBusList*, 1);
+      if (list == NULL)
+        return NULL;
+
+      new_key = _dbus_strdup (key);
+      if (new_key == NULL)
+        {
+          dbus_free (list);
+          return NULL;
+        }
+
+      if (!_dbus_hash_table_insert_string (table, new_key, list))
+        {
+          dbus_free (list);
+          dbus_free (new_key);
+          return NULL;
+        }
+    }
+
+  return list;
+}
+#endif
+
+dbus_bool_t
+bus_policy_append_smack_rule (BusPolicy      *policy,
+                              const char     *label,
+                              BusPolicyRule  *rule)
+{
+#ifdef DBUS_ENABLE_SMACK
+  DBusList **list;
+
+  list = get_list_string (policy->rules_by_smack_label, label);
+  if (list == NULL)
+    return FALSE;
+
+  if (!_dbus_list_append (list, rule))
+    return FALSE;
+
+  bus_policy_rule_ref (rule);
+#endif
+
+  return TRUE;
+}
+
 dbus_bool_t
 bus_policy_append_console_rule (BusPolicy      *policy,
                                 dbus_bool_t     at_console,
@@ -653,6 +747,31 @@ merge_id_hash (DBusHashTable *dest,
   return TRUE;
 }
 
+#ifdef DBUS_ENABLE_SMACK
+static dbus_bool_t
+merge_string_hash (DBusHashTable *dest,
+                   DBusHashTable *to_absorb)
+{
+  DBusHashIter iter;
+
+  _dbus_hash_iter_init (to_absorb, &iter);
+  while (_dbus_hash_iter_next (&iter))
+    {
+      const char *absorb_label = _dbus_hash_iter_get_string_key(&iter);
+      DBusList **list = _dbus_hash_iter_get_value (&iter);
+      DBusList **target = get_list_string (dest, absorb_label);
+
+      if (target == NULL)
+        return FALSE;
+
+      if (!append_copy_of_policy_list (target, list))
+        return FALSE;
+    }
+
+  return TRUE;
+}
+#endif
+
 dbus_bool_t
 bus_policy_merge (BusPolicy *policy,
                   BusPolicy *to_absorb)
@@ -684,6 +803,12 @@ bus_policy_merge (BusPolicy *policy,
   if (!merge_id_hash (policy->rules_by_gid,
                       to_absorb->rules_by_gid))
     return FALSE;
+
+#ifdef DBUS_ENABLE_SMACK
+  if (!merge_string_hash (policy->rules_by_smack_label,
+                          to_absorb->rules_by_smack_label))
+    return FALSE;
+#endif
 
   return TRUE;
 }
@@ -873,7 +998,7 @@ bus_client_policy_check_can_send (BusClientPolicy *policy,
 {
   DBusList *link;
   dbus_bool_t allowed;
-  
+
   /* policy->rules is in the order the rules appeared
    * in the config file, i.e. last rule that applies wins
    */
