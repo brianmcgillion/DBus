@@ -415,8 +415,7 @@ free_connection_data (void *data)
   dbus_free (d->name);
   
 #ifdef DBUS_ENABLE_SMACK
-  if (d->smack_label)
-    free(d->smack_label);
+  bus_smack_label_free (d->smack_label);
 #endif
 
   dbus_free (d);
@@ -739,9 +738,7 @@ bus_connections_setup_connection (BusConnections *connections,
       d->selinux_id = NULL;
       
 #ifdef DBUS_ENABLE_SMACK
-      if (d->smack_label)
-        free(d->smack_label);
-      d->smack_label = NULL;
+  bus_smack_label_free (d->smack_label);
 #endif
 
       if (!dbus_connection_set_watch_functions (connection,

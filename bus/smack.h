@@ -28,7 +28,8 @@
 
 #include "bus.h"
 
-static char *
-bus_smack_get_label (DBusConnection *connection, DBusError *error);
+char *bus_smack_get_label (DBusConnection *connection, DBusError *error);
+
+void bus_smack_label_free (void *label);
 
 #endif // SMACK_H

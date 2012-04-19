@@ -32,9 +32,10 @@
 
 #ifdef DBUS_ENABLE_SMACK
 #include <sys/smack.h>
+#include <stdlib.h>
 #endif
 
-static char *
+char *
 bus_smack_get_label (DBusConnection *connection, DBusError *error)
 {
 #ifdef DBUS_ENABLE_SMACK
@@ -59,5 +60,15 @@ bus_smack_get_label (DBusConnection *connection, DBusError *error)
   return label;
 #else
   return NULL;
+#endif
+}
+
+void
+bus_smack_label_free (void *label)
+{
+#ifdef DBUS_ENABLE_SMACK
+  if (label)
+    free (label);
+  label = NULL;
 #endif
 }
