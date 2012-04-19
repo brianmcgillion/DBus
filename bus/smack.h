@@ -28,9 +28,7 @@
 
 #include "bus.h"
 
-dbus_bool_t bus_smack_handle_get_connection_context (DBusConnection *connection,
-                                                     BusTransaction *transaction,
-                                                     DBusMessage    *message,
-                                                     DBusError      *error);
+static char *
+bus_smack_get_label (DBusConnection *connection, DBusError *error);
 
 #endif // SMACK_H

@@ -30,6 +30,7 @@
 #include "signals.h"
 #include "expirelist.h"
 #include "selinux.h"
+#include "smack.h"
 #include <dbus/dbus-list.h>
 #include <dbus/dbus-hash.h>
 #include <dbus/dbus-timeout.h>
@@ -101,6 +102,10 @@ typedef struct
 #ifdef DBUS_ENABLE_STATS
   int peak_match_rules;
   int peak_bus_names;
+#endif
+
+#ifdef DBUS_ENABLE_SMACK
+  char *smack_label;
 #endif
 } BusConnectionData;
 
@@ -409,6 +414,11 @@ free_connection_data (void *data)
   
   dbus_free (d->name);
   
+#ifdef DBUS_ENABLE_SMACK
+  if (d->smack_label)
+    free(d->smack_label);
+#endif
+
   dbus_free (d);
 }
 
@@ -626,6 +636,11 @@ bus_connections_setup_connection (BusConnections *connections,
   dbus_error_init (&error);
   d->selinux_id = bus_selinux_init_connection_id (connection,
                                                   &error);
+
+#ifdef DBUS_ENABLE_SMACK
+  d->smack_label = bus_smack_get_label(connection, &error);
+#endif
+
   if (dbus_error_is_set (&error))
     {
       /* This is a bit bogus because we pretend all errors
@@ -723,6 +738,12 @@ bus_connections_setup_connection (BusConnections *connections,
         bus_selinux_id_unref (d->selinux_id);
       d->selinux_id = NULL;
       
+#ifdef DBUS_ENABLE_SMACK
+      if (d->smack_label)
+        free(d->smack_label);
+      d->smack_label = NULL;
+#endif
+
       if (!dbus_connection_set_watch_functions (connection,
                                                 NULL, NULL, NULL,
                                                 connection,
@@ -1106,6 +1127,23 @@ bus_connection_get_selinux_id (DBusConnection *connection)
 
   return d->selinux_id;
 }
+
+char*
+bus_connection_get_smack_label (DBusConnection *connection)
+{
+#ifdef DBUS_ENABLE_SMACK
+  BusConnectionData *d;
+
+  d = BUS_CONNECTION_DATA (connection);
+
+  _dbus_assert (d != NULL);
+
+  return d->smack_label;
+#else
+  return NULL;
+#endif
+}
+
 
 /**
  * Checks whether the connection is registered with the message bus.

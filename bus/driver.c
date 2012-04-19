@@ -1738,10 +1738,6 @@ static const MessageHandler dbus_message_handlers[] = {
     "",
     DBUS_TYPE_STRING_AS_STRING,
     bus_driver_handle_get_id },
-  { "GetConnectionSmackContext",
-    DBUS_TYPE_STRING_AS_STRING,
-    DBUS_TYPE_STRING_AS_STRING,
-    bus_smack_handle_get_connection_context },
   { NULL, NULL, NULL, NULL }
 };
 
