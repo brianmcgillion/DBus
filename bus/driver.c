@@ -1833,7 +1833,7 @@ static const MessageHandler dbus_message_handlers[] = {
     "",
     DBUS_TYPE_STRING_AS_STRING,
     bus_driver_handle_get_id },
-  { "GetConnectionCredentials", "s", "a{ss}",
+  { "GetConnectionCredentials", "s", "a{sv}",
     bus_driver_handle_get_connection_credentials },
   { NULL, NULL, NULL, NULL }
 };
