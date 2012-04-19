@@ -1536,12 +1536,15 @@ bus_driver_handle_get_connection_credentials (DBusConnection *connection,
   DBusMessageIter array_iter;
   unsigned long ulong_val;
   const char *service;
-
   /* only used by unfinished bits - Solaris/SELinux */
 #if 0
   void *adt_data;
   dbus_uint32_t adt_size;
   BusSELinuxID *sid;
+#endif
+
+#ifdef DBUS_ENABLE_SMACK
+  const char *smack_label;
 #endif
 
   _DBUS_ASSERT_ERROR_IS_CLEAR (error);
@@ -1596,6 +1599,17 @@ bus_driver_handle_get_connection_credentials (DBusConnection *connection,
        * bus_selinux_append_context() */
       if (!_dbus_asv_add_fixed_byte_array (&array_iter, "SELinuxSecurityContext",
                                            context, strlen (context)))
+        goto oom;
+    }
+#endif
+
+#ifdef DBUS_ENABLE_SMACK
+  smack_label = bus_connection_get_smack_label (conn);
+
+  if (smack_label != NULL)
+    {
+      if (!_dbus_asv_add_fixed_byte_array (&array_iter, "SmackSecurityContext",
+                                           smack_label, strlen (smack_label)))
         goto oom;
     }
 #endif

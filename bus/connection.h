@@ -78,6 +78,7 @@ const char *bus_connection_get_name  (DBusConnection *connection);
 dbus_bool_t bus_connection_preallocate_oom_error (DBusConnection *connection);
 void        bus_connection_send_oom_error        (DBusConnection *connection,
                                                   DBusMessage    *in_reply_to);
+const char *bus_connection_get_smack_label       (DBusConnection *connection);
 
 /* called by signals.c */
 dbus_bool_t bus_connection_add_match_rule      (DBusConnection *connection,

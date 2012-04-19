@@ -1128,7 +1128,7 @@ bus_connection_get_selinux_id (DBusConnection *connection)
   return d->selinux_id;
 }
 
-char*
+const char *
 bus_connection_get_smack_label (DBusConnection *connection)
 {
 #ifdef DBUS_ENABLE_SMACK
