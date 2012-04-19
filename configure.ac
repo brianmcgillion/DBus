@@ -1676,6 +1676,17 @@ if test "x$enable_stats" = xyes; then
     [Define to enable bus daemon usage statistics])
 fi
 
+#enable smack label support
+AC_ARG_ENABLE([smack], [AS_HELP_STRING([--enable-smack], [enable SMACK security checks])], [], [enable_smack=no])
+if test "x$enable_smack" = xyes; then
+  PKG_CHECK_MODULES([LIBSMACK], [libsmack >= 1.0],
+     [AC_DEFINE([DBUS_ENABLE_SMACK], [1], [Define to enable SMACK security features])],
+     [AC_MSG_ERROR([libsmack is required to enable smack support])])
+fi
+
+AC_SUBST([LIBSMACK_CFLAGS])
+AC_SUBST([LIBSMACK_LIBS])
+
 AC_CONFIG_FILES([
 Doxyfile
 dbus/versioninfo.rc
@@ -1754,6 +1765,7 @@ echo "
         Building checks:          ${enable_checks}
         Building bus stats API:   ${enable_stats}
         Building SELinux support: ${have_selinux}
+	Building SMACK support:   ${enable_smack}
         Building inotify support: ${have_inotify}
         Building dnotify support: ${have_dnotify}
         Building kqueue support:  ${have_kqueue}
