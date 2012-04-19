@@ -53,5 +53,9 @@ dbus_bool_t  _dbus_asv_add_uint32        (DBusMessageIter *arr_iter,
 dbus_bool_t  _dbus_asv_add_string        (DBusMessageIter *arr_iter,
                                           const char      *key,
                                           const char      *value);
+dbus_bool_t _dbus_asv_add_fixed_byte_array (DBusMessageIter *array_iter,
+                                            const char *key,
+                                            const void *value,
+                                            int n_elements);
 
 #endif

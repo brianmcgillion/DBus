@@ -1536,10 +1536,9 @@ bus_driver_handle_get_connection_credentials (DBusConnection *connection,
   DBusMessageIter array_iter;
   unsigned long ulong_val;
   const char *service;
-#if 0
+
   /* only used by unfinished bits - Solaris/SELinux */
-  DBusMessageIter entry_iter;
-  DBusMessageIter var_iter;
+#if 0
   void *adt_data;
   dbus_uint32_t adt_size;
   BusSELinuxID *sid;
@@ -1581,19 +1580,8 @@ bus_driver_handle_get_connection_credentials (DBusConnection *connection,
                                                   &adt_size) &&
       adt_size <= _DBUS_INT_MAX)
     {
-      if (!_dbus_asv_open_entry (&array_iter, &entry_iter,
-                                 "ADTAuditSessionData", "ay",
-                                 &var_iter))
-        goto oom;
-
-      if (!dbus_message_iter_append_fixed_array (&var_iter, DBUS_TYPE_BYTE,
-                                                 adt_data, adt_size))
-        {
-          _dbus_asv_abandon_entry (&array_iter, &entry_iter, &var_iter);
-          goto oom;
-        }
-
-      if (!_dbus_asv_close_entry (&array_iter, &entry_iter, &var_iter))
+      if (!_dbus_asv_add_fixed_byte_array (&array_iter, "ADTAuditSessionData",
+                                           adt_data, adt_size))
         goto oom;
     }
 #endif
@@ -1606,20 +1594,8 @@ bus_driver_handle_get_connection_credentials (DBusConnection *connection,
     {
       /* FIXME: get context from sid, similar to
        * bus_selinux_append_context() */
-
-      if (!_dbus_asv_open_entry (&array_iter, &entry_iter,
-                                 "SELinuxSecurityContext", "ay",
-                                 &var_iter))
-        goto oom;
-
-      if (!dbus_message_iter_append_fixed_array (&var_iter, DBUS_TYPE_BYTE,
-                                                 context, strlen (context)))
-        {
-          _dbus_asv_abandon_entry (&array_iter, &entry_iter, &var_iter);
-          goto oom;
-        }
-
-      if (!_dbus_asv_close_entry (&array_iter, &entry_iter, &var_iter))
+      if (!_dbus_asv_add_fixed_byte_array (&array_iter, "SELinuxSecurityContext",
+                                           context, strlen (context)))
         goto oom;
     }
 #endif
