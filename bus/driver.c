@@ -1608,8 +1608,7 @@ bus_driver_handle_get_connection_credentials (DBusConnection *connection,
 
   if (smack_label != NULL)
     {
-      if (!_dbus_asv_add_fixed_byte_array (&array_iter, "SmackSecurityContext",
-                                           smack_label, strlen (smack_label)))
+      if (!_dbus_asv_add_string(&array_iter, "SmackSecurityContext", smack_label))
         goto oom;
     }
 #endif
