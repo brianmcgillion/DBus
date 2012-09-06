@@ -30,6 +30,7 @@
 #include "signals.h"
 #include "expirelist.h"
 #include "selinux.h"
+#include "smack.h"
 #include <dbus/dbus-list.h>
 #include <dbus/dbus-hash.h>
 #include <dbus/dbus-timeout.h>
@@ -97,6 +98,8 @@ typedef struct
   long connection_tv_sec;  /**< Time when we connected (seconds component) */
   long connection_tv_usec; /**< Time when we connected (microsec component) */
   int stamp;               /**< connections->stamp last time we were traversed */
+
+  char *smack_label;
 
 #ifdef DBUS_ENABLE_STATS
   int peak_match_rules;
@@ -409,6 +412,9 @@ free_connection_data (void *data)
   
   dbus_free (d->name);
   
+  if (d->smack_label)
+    bus_smack_label_free (d->smack_label);
+
   dbus_free (d);
 }
 
@@ -626,6 +632,10 @@ bus_connections_setup_connection (BusConnections *connections,
   dbus_error_init (&error);
   d->selinux_id = bus_selinux_init_connection_id (connection,
                                                   &error);
+
+  if (!dbus_error_is_set (&error))
+    d->smack_label = bus_smack_get_label(connection, &error);
+
   if (dbus_error_is_set (&error))
     {
       /* This is a bit bogus because we pretend all errors
@@ -723,6 +733,10 @@ bus_connections_setup_connection (BusConnections *connections,
         bus_selinux_id_unref (d->selinux_id);
       d->selinux_id = NULL;
       
+      if (d->smack_label)
+        bus_smack_label_free (d->smack_label);
+      d->smack_label = NULL;
+
       if (!dbus_connection_set_watch_functions (connection,
                                                 NULL, NULL, NULL,
                                                 connection,
@@ -1105,6 +1119,18 @@ bus_connection_get_selinux_id (DBusConnection *connection)
   _dbus_assert (d != NULL);
 
   return d->selinux_id;
+}
+
+const char*
+bus_connection_get_smack_label (DBusConnection *connection)
+{
+  BusConnectionData *d;
+
+  d = BUS_CONNECTION_DATA (connection);
+
+  _dbus_assert (d != NULL);
+
+  return d->smack_label;
 }
 
 /**

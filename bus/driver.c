@@ -30,6 +30,7 @@
 #include "services.h"
 #include "selinux.h"
 #include "signals.h"
+#include "smack.h"
 #include "stats.h"
 #include "utils.h"
 
@@ -1536,6 +1537,7 @@ bus_driver_handle_get_connection_credentials (DBusConnection *connection,
   DBusMessageIter array_iter;
   unsigned long ulong_val;
   const char *service;
+  char *smack_ctx;
 
   _DBUS_ASSERT_ERROR_IS_CLEAR (error);
 
@@ -1564,6 +1566,13 @@ bus_driver_handle_get_connection_credentials (DBusConnection *connection,
       ulong_val <= _DBUS_UINT32_MAX)
     {
       if (!_dbus_asv_add_uint32 (&array_iter, "UnixUserID", ulong_val))
+        goto oom;
+    }
+
+  smack_ctx = bus_connection_get_smack_label (conn);
+  if (smack_ctx)
+    {
+      if (!_dbus_asv_add_string(&array_iter, "SmackContext", smack_ctx))
         goto oom;
     }
 
