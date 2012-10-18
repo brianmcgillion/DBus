@@ -5645,6 +5645,14 @@
                 <entry>UINT32</entry>
                 <entry>The numeric Unix process ID, as defined by POSIX</entry>
               </row>
+	      <row>
+		<entry>SmackContext</entry>
+		<entry>STRING</entry>
+		<entry>This is a ascii string that defines the Smack context
+		of the process that owns the connection.  Smack is a Manditory
+		Access Control framework, that is part of the Linux kernel.
+		</entry>
+	      </row>
             </tbody>
           </tgroup>
         </informaltable>
