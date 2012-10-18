@@ -27,11 +27,14 @@
 #define SMACK_H
 
 #include "bus.h"
+#include <dbus/dbus-hash.h>
 
-char *
-bus_smack_get_label (DBusConnection *connection, DBusError *error);
+char *bus_smack_get_label (DBusConnection *connection, DBusError *error);
 
-void
-bus_smack_label_free (char *label);
+void bus_smack_label_free (char *label);
+
+dbus_bool_t bus_smack_generate_allowed_list (DBusConnection *connection,
+                                             DBusHashTable *label_rules,
+                                             DBusList **error);
 
 #endif // SMACK_H
