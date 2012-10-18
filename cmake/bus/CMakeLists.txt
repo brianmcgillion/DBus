@@ -65,7 +65,9 @@ set (BUS_SOURCES
 	${BUS_DIR}/services.c				
 	${BUS_DIR}/services.h				
 	${BUS_DIR}/signals.c				
-	${BUS_DIR}/signals.h				
+	${BUS_DIR}/signals.h
+	${BUS_DIR}/smack.c
+        ${BUS_DIR}/smack.h
 	${BUS_DIR}/test.c					
 	${BUS_DIR}/test.h					
 	${BUS_DIR}/utils.c					
